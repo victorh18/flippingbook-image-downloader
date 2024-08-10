@@ -62,7 +62,7 @@ const getDownloadUrls = (pagerResponse) => {
     }
     
     //console.log(urls);
-    downloadFiles(urls.slice(0, 15));
+    downloadFiles(urls);
     
 }
 
