@@ -1,7 +1,7 @@
 # Flipping Book Downloader
 This repository contains a simple script for downloading a FlippingBook's book pages as images, which are then save to the local disk. 
 
-## How it works?
+## How does it works?
 It works by taking a public FlippingBook link, which must have public access through the internet, and making calls to its API to fetch the pages metadata, form the appropiate pages link, and then downloading each image and saving the files to the local disk.
 
 The necessary steps needed to run the script are:
