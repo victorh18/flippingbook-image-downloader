@@ -1,6 +1,10 @@
-import { JSDOM } from "jsdom";
 import fs from 'node:fs/promises'
 import fsSync from 'node:fs'
+import 'dotenv/config'
+
+const { IMAGES_FOLDER, BASE_URL } = process.env;
+// Validate .env before executing
+// Check if folder is really a folder
 
 let loadingProgress = 0;
 let pageNumberDownloaded = 0;
@@ -19,31 +23,62 @@ const loadingSpinner = {
     9: '⠏',
 }
 
-const BASE_URL = 'https://hgpdvol1.academiadominicanahistoria.org.do//files/assets/common/'
 
+if (!IMAGES_FOLDER) {
+    console.error("A valid folder was not provided, cancelling extraction...")
+    process.exit();
+}
 
-process.stdout.write('\x1Bc');
+if (!BASE_URL) {
+    console.error("A download URL was not provided, cancelling extraction...")
+    process.exit();
+}
 
-// hides cursor
-process.stderr.write('\x1B[?25l');
+const ROUTE_PREFIX = '//files/assets/common/';
+
+const PAGER_URL = `${BASE_URL}${ROUTE_PREFIX}pager.js`;
+const DOWNLOAD_PREFIX = `${BASE_URL}${ROUTE_PREFIX}`
+
+const NORMAL_DOWNLOAD_SUFFIX = 'page-html5-substrates/page';
+const NORMAL_DOWNLOAD_EXTENSION = '.jpg';
+
+const TEXT_LAYER_DOWNLOAD_SUFFIX = 'page-textlayers/page';
+const TEXT_LAYER_DONWLOAD_NAME_SUFFIX = '_c';
+const TEXT_LAYER_DOWNLOAD_EXTENSION = `${TEXT_LAYER_DONWLOAD_NAME_SUFFIX}.png`;
+
+const CLEAR_TERMINAL_CHAR = '\x1Bc';
+const HIDE_CURSOR_CHAR = '\x1B[?25l';
+
+process.stdout.write(CLEAR_TERMINAL_CHAR);
+process.stderr.write(HIDE_CURSOR_CHAR);
 
 const intervalValue = setInterval(() => {
     loadingProgress++;
     const padding = 4;
     const repeatDots = Math.round(loadingProgress / 10) % padding;
  
-    const statusText = pagesToDownload ? `Downloading page ${pageNumberDownloaded} of ${pagesToDownload}         \r\n` : 'Calculating pages to download...\r\n'
+    const statusText = pagesToDownload ? 
+        `Downloading page ${pageNumberDownloaded} of ${pagesToDownload}         \r\n` : 
+        'Calculating pages to download...\r\n';
+
+    const spinnerChar = loadingSpinner[loadingProgress % 10];
+    const loadingMessage = `Loading${'.'.repeat(repeatDots).padEnd(padding, ' ')}`;
 
     process.stdout.moveCursor(0, -2)
-    process.stdout.write(` ${loadingSpinner[loadingProgress % 10]} Loading${'.'.repeat(repeatDots).padEnd(padding, ' ')}\r\n`);
+    process.stdout.write(` ${spinnerChar} ${loadingMessage}\r\n`);
     process.stdout.write(` ${statusText}`);
-}, 80)
+}, 80);
 
 const getPageUrl = (pageNumber, textLayer) => {
-    if (textLayer)
-        return BASE_URL + `page-textlayers/page${`${pageNumber}`.padStart(4, '0')}_c.png`;
+    const suffix = textLayer ?
+        `${DOWNLOAD_PREFIX}${TEXT_LAYER_DOWNLOAD_SUFFIX}` :
+        `${DOWNLOAD_PREFIX}${NORMAL_DOWNLOAD_SUFFIX}`;
 
-    return BASE_URL + `page-html5-substrates/page${`${pageNumber}`.padStart(4, '0')}.jpg`;
+    const fileName = textLayer ?
+        `${`${pageNumber}`.padStart(4, '0')}${TEXT_LAYER_DOWNLOAD_EXTENSION}` :
+        `${`${pageNumber}`.padStart(4, '0')}${NORMAL_DOWNLOAD_EXTENSION}`;
+
+    return `${suffix}${fileName}`
 }
 
 const getDownloadUrls = (pagerResponse) => {
@@ -60,33 +95,27 @@ const getDownloadUrls = (pagerResponse) => {
             urls.push(getPageUrl(pageNumber, pageMetada?.textLayer))
         }
     }
-    
-    //console.log(urls);
+
     downloadFiles(urls);
-    
 }
 
 const downloadFiles = async (urls) => {
-    if (!fsSync.existsSync('./pages'))
-        await fs.mkdir('./pages');
+    if (!fsSync.existsSync(IMAGES_FOLDER))
+        await fs.mkdir(IMAGES_FOLDER);
 
     for (const url of urls) {
         const urlParts = url.split('/')
-        const pageName = urlParts[urlParts.length - 1].replace('_c', "")
+        const pageName = urlParts[urlParts.length - 1].replace(TEXT_LAYER_DONWLOAD_NAME_SUFFIX, "")
         const response = await fetch(url);
         const image = await response.arrayBuffer();
 
-        fs.appendFile(`./pages/${pageName}`, Buffer.from(image));
+        fs.appendFile(`${IMAGES_FOLDER}/${pageName}`, Buffer.from(image));
         pageNumberDownloaded++;
     }
     clearInterval(intervalValue);
     console.log(' Done!')
 }
 
-fetch('https://hgpdvol1.academiadominicanahistoria.org.do//files/assets/common/pager.js')
+fetch(PAGER_URL)
     .then(response => response.json()
     .then(data => getDownloadUrls(data)));
-
-
-
-
