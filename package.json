@@ -1,7 +1,7 @@
 {
-  "name": "book-image-downloader",
+  "name": "flippingbook-image-downloader",
   "version": "1.0.0",
-  "description": "A script that downloads images from FlippBook pages",
+  "description": "A script that downloads images from FlippingBook pages",
   "main": "index.js",
   "type": "module",
   "scripts": {
